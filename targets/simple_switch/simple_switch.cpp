@@ -411,13 +411,7 @@ SimpleSwitch::enqueue(port_t egress_port, std::unique_ptr<Packet> &&packet) {
       phv->get_field("queueing_metadata.enq_qdepth")
           .set(egress_buffers.size(egress_port));
     }
-    for (size_t i = 0; i < max_port_count; i++) {
-      auto qdepth = egress_buffers.size(i);
-      // you will need to define fields queueing_metadata.enq_qdepth_{0, 1, 2, ..., max_port} in your p4 program Also V1 model needs to be update it.
-      if (phv->has_field("queueing_metadata.enq_qdepth_" + std::to_string(i))){
-        phv->get_field("queueing_metadata.enq_qdepth_" + std::to_string(i)).set(qdepth);
-      }
-    }
+
     size_t priority = phv->has_field(SSWITCH_PRIORITY_QUEUEING_SRC) ?
         phv->get_field(SSWITCH_PRIORITY_QUEUEING_SRC).get<size_t>() : 0u;
     if (priority >= nb_queues_per_port) {
@@ -674,6 +668,13 @@ SimpleSwitch::egress_thread(size_t worker_id) {
           get_ts().count() - enq_timestamp);
       phv->get_field("queueing_metadata.deq_qdepth").set(
           egress_buffers.size(port));
+      for (size_t i = 0; i < max_port_count; i++) {
+        auto qdepth = egress_buffers.size(i);
+        // you will need to define fields queueing_metadata.enq_qdepth_{0, 1, 2, ..., max_port} in your p4 program Also V1 model needs to be update it.
+        if (phv->has_field("queueing_metadata.enq_qdepth_" + std::to_string(i))){
+          phv->get_field("queueing_metadata.enq_qdepth_" + std::to_string(i)).set(qdepth);
+        }
+      }
       if (phv->has_field("queueing_metadata.qid")) {
         auto &qid_f = phv->get_field("queueing_metadata.qid");
         qid_f.set(nb_queues_per_port - 1 - priority);
